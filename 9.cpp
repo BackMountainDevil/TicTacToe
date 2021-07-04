@@ -1,3 +1,9 @@
+#ifdef __linux__
+const int OS=0;
+#elif defined(_WIN32)
+const int OS=1;
+#endif
+
 #include<iostream>
 using namespace std;
 
@@ -55,10 +61,19 @@ void checkInput(int pos, int board[])
     }
 }
 
+void clearScreen()
+{
+    // 清空控制台所有内容, linux 与 windows 有所不同
+    if(OS==0)
+        system( "clear" );
+    else
+        system( "clr" );
+}
+
 int main(){
     // 0 表示未有子，1、2分别表示两种棋子
     int board[9] = {0}; 
-    system( "clear" );
+    clearScreen();
     showBoard(board);
     int winner = -1;
 
@@ -69,7 +84,7 @@ int main(){
         cin>>pos;
         checkInput(pos,board); 
         board[pos] = count%2+1;
-        system( "clear" );
+        clearScreen();
         showBoard(board);
         winner = checkWinner(board);
         if(winner!=-1){
