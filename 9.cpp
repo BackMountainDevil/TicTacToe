@@ -24,21 +24,21 @@ void showBoard(int board[]){
 }
 
 int checkWinner(int board[]){
-    // 检测赢家，返回值 -1（无赢家） or 1（玩家一） or 4（玩家二）
+    // 检测赢家，返回值 -1（无赢家） or 1（玩家一） or 2（玩家二）
     int winner = -1;
     for(int i=0; i<3; i++){
-        if(board[i]+board[i+3]+board[i+6] == 12 || board[i]+board[i+3]+board[i+6] == 3){   // 竖
+        if(board[i]==board[i+3] && board[i+3]==board[i+6]  && board[i]!=0){   // 竖
             winner = board[i];
             break;
-        }else if(board[i*3]+board[i*3+1]+board[i*3+2] ==12 || board[i*3]+board[i*3+1]+board[i*3+2] ==3){   // 横
+        }else if(board[i*3]==board[i*3+1] && board[i*3+1]==board[i*3+2] && board[i*3]!=0){   // 横
             winner = board[i*3];
             break;
         }
     }
     // 对角线
-    if(board[0]+board[4]+board[8]==3 || board[0]+board[4]+board[8]==12){
+    if(board[0]==board[4] && board[4]==board[8] && board[4]!=0){
         winner = board[4];
-    }else if(board[2]+board[4]+board[6]==3 || board[2]+board[4]+board[6]==12){
+    }else if(board[2]==board[4] && board[4]==board[6] && board[4]!=0){
         winner = board[4];
     }
     return winner;
