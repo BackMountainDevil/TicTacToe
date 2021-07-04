@@ -2,7 +2,7 @@
 using namespace std;
 
 void showBoard(int board[]){
-    // 显示棋盘以及棋子    
+    // 显示棋盘以及棋子
     for(int i=0; i<9; i++){
         cout<<" __";
         if(board[i]==0){
@@ -56,7 +56,7 @@ void checkInput(int pos, int board[])
 }
 
 int main(){
-    // 0 表示未有子，1、4分别表示两种棋子
+    // 0 表示未有子，1、2分别表示两种棋子
     int board[9] = {0}; 
     system( "clear" );
     showBoard(board);
@@ -65,24 +65,10 @@ int main(){
     int count = 0;
     while(count < 9){
         int pos;
-
-        cout<<"Play 1 (x):";
+        cout<<"Player "<<count%2+1<<" : ";
         cin>>pos;
         checkInput(pos,board); 
-        board[pos] = 1;
-        system( "clear" );
-        showBoard(board);
-        winner = checkWinner(board);
-        if(winner!=-1){
-            break;
-        }
-        count++;
-        if(count>8) break;
-
-        cout<<"Play 2 (A):";
-        cin>>pos;
-        checkInput(pos,board);
-        board[pos] = 4;
+        board[pos] = count%2+1;
         system( "clear" );
         showBoard(board);
         winner = checkWinner(board);
@@ -91,7 +77,6 @@ int main(){
         }
         count++;
     }
-    winner=winner==1?1:2;
     cout<<"The winner is Player : "<<winner<<endl;
     return 0;
 }
