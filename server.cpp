@@ -7,52 +7,34 @@
 #include <string.h>
 #include <unistd.h>
 
-pthread_mutex_t mutex;     // 互斥量
-int clnt_cnt = 0;          // 客户数，临界资源
-int clnt_socks[CLIENTMAX]; // 保存客户套接字的数组，临界资源
+pthread_mutex_t mutex; // 互斥量
 char bufSend[BUF_SIZE];
 
+struct Clients {
+  int sum = 0;               // 客户数
+  int clnt_socks[CLIENTMAX]; // 保存客户套接字的数组
+  char status[CLIENTMAX]; // 'G' 游戏中, 'W' 未匹配队友，'F' 不在线
+} cli;
+
 void *send_msg(char *msg, int len, int fd = -1) {
-  pthread_mutex_lock(&mutex); // 加锁
   int num;
   if (fd != -1) {
     num = write(fd, msg, len);
     if (num < 0) {
       perror("Error: Send fail");
-      for (int i = 0; i < clnt_cnt; i++) { // 剔除掉线用户
-        if (clnt_socks[i] == fd) {
-          while (i++ < clnt_cnt - 1) {
-            clnt_socks[i] = clnt_socks[i + 1];
-          }
-          std::cout << "Client " << fd << " disconnect" << std::endl;
-          break;
-        }
-      }
-      clnt_cnt--; // 客户数量减一
-      close(fd);
+      return NULL;
     }
-  } else { // 把消息发送给所有客户
-    for (int j = 0; j < clnt_cnt; j++) {
-      num = write(clnt_socks[j], msg, len);
+  } else {                      // 把消息发送给所有客户
+    pthread_mutex_lock(&mutex); // 加锁
+    for (int j = 0; j < cli.sum; j++) {
+      num = write(cli.clnt_socks[j], msg, len);
       if (num < 0) {
         perror("Error: Send fail");
-        for (int i = 0; i < clnt_cnt; i++) { // 剔除掉线用户
-          if (clnt_socks[i] == clnt_socks[j]) {
-            while (i++ < clnt_cnt - 1) {
-              clnt_socks[i] = clnt_socks[i + 1];
-            }
-            std::cout << "Client " << clnt_socks[j] << " disconnect"
-                      << std::endl;
-            break;
-          }
-        }
-        clnt_cnt--; // 客户数量减一
-        close(clnt_socks[j]);
+        return NULL;
       }
     }
+    pthread_mutex_unlock(&mutex); // 解锁
   }
-  pthread_mutex_unlock(&mutex); // 解锁
-
   return NULL;
 }
 
@@ -66,10 +48,12 @@ void *handle_client(void *arg) {
     if (bufSend[0] == '\\') {        //特殊指令
       if (!strcmp(bufSend, "\\Q")) { // 查询全部在线且不在游戏中的用户
         int pos = 0;
-        for (int i = 0; i < clnt_cnt; i++) {
-          pos += sprintf(bufSend + pos, "%d ", clnt_socks[i]);
+        pthread_mutex_lock(&mutex); // 加锁
+        for (int i = 0; i < cli.sum; i++) {
+          pos += sprintf(bufSend + pos, "%d ", cli.clnt_socks[i]);
         }
-        bufSend[pos - 1] = '\n'; // 最后一个空格换成 换行符号
+        bufSend[pos - 1] = '\n';      // 最后一个空格换成 换行符号
+        pthread_mutex_unlock(&mutex); // 解锁
         send_msg(bufSend, recv_num, clnt_sock);
       }
     } else {
@@ -77,23 +61,26 @@ void *handle_client(void *arg) {
     }
   }
 
-  pthread_mutex_lock(&mutex);          // 加锁
-  for (int i = 0; i < clnt_cnt; i++) { // 剔除掉线用户
-    if (clnt_socks[i] == clnt_sock) {
-      while (i++ < clnt_cnt - 1) {
-        clnt_socks[i] = clnt_socks[i + 1];
+  pthread_mutex_lock(&mutex);         // 加锁
+  for (int i = 0; i < cli.sum; i++) { // 剔除掉线用户
+    if (cli.clnt_socks[i] == clnt_sock) {
+      while (i++ < cli.sum - 1) {
+        cli.clnt_socks[i] = cli.clnt_socks[i + 1];
       }
       std::cout << "Client " << clnt_sock << " disconnect" << std::endl;
+      cli.sum--; // 客户数量减一
+      cli.status[clnt_sock] = 'F';
       break;
     }
   }
-  clnt_cnt--;                   // 客户数量减一
   pthread_mutex_unlock(&mutex); // 解锁
   close(clnt_sock);
   return NULL;
 }
 
 int main() {
+  memset(&cli.status, 'F', CLIENTMAX); // 每个字节都用F填充
+
   struct hostent *host = gethostbyname(DOMAIN); // 由域名获取 IP
   if (!host) {
     perror("Get IP address error!");
@@ -149,7 +136,8 @@ int main() {
       continue;
     } else {
       pthread_mutex_lock(&mutex); // 加锁
-      clnt_socks[clnt_cnt++] = clnt_sock;
+      cli.clnt_socks[cli.sum++] = clnt_sock;
+      cli.status[clnt_sock] = 'W';
       pthread_mutex_unlock(&mutex); // 解锁
 
       sprintf(bufSend, "\\%d", clnt_sock); // 告诉用户自己的套接字号
