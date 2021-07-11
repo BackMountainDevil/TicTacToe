@@ -1,6 +1,5 @@
 #include "config.h"
 #include <arpa/inet.h>
-#include <cstdio>
 #include <iostream>
 #include <netdb.h>
 #include <pthread.h>
@@ -11,8 +10,8 @@ pthread_mutex_t mutex; // 互斥量
 char bufSend[BUF_SIZE];
 
 struct Clients {
-  int sum = 0;               // 客户数
-  int clnt_socks[CLIENTMAX]; // 保存客户套接字的数组
+  unsigned int sum = 0;               // 客户数
+  unsigned int clnt_socks[CLIENTMAX]; // 保存客户套接字的数组
   char status[CLIENTMAX]; // 'G' 游戏中, 'W' 未匹配队友，'F' 不在线
 } cli;
 
@@ -45,8 +44,8 @@ void *handle_client(void *arg) {
 
   while ((recv_num = read(clnt_sock, bufSend, sizeof(bufSend))) != 0) {
     std::cout << clnt_sock << " : " << bufSend << std::endl;
-    if (bufSend[0] == '\\') {        //特殊指令
-      if (!strcmp(bufSend, "\\Q")) { // 查询全部在线且不在游戏中的用户
+    if (bufSend[0] == '\\') { // 特殊指令
+      if (!strcmp(bufSend, "\\Q")) { // “\Q“ 查询全部在线且不在游戏中的用户
         int pos = 0;
         pthread_mutex_lock(&mutex); // 加锁
         for (int i = 0; i < cli.sum; i++) {
@@ -54,9 +53,21 @@ void *handle_client(void *arg) {
         }
         bufSend[pos - 1] = '\n';      // 最后一个空格换成 换行符号
         pthread_mutex_unlock(&mutex); // 解锁
-        send_msg(bufSend, recv_num, clnt_sock);
+        send_msg(bufSend, sizeof(bufSend), clnt_sock);
+      } else if (bufSend[1] == 'p') { // “\p 23 hello world“定向通信
+        char *result = NULL;
+        result = strtok(bufSend, " "); // \p
+        result = strtok(NULL, " ");    // 目标套接字 23
+        int tosocket = atoi(result);
+        int pos = 0;
+        char tmp[BUF_SIZE];
+        pos += sprintf(tmp + pos, "\\pf %d ", clnt_sock);
+        while ((result = strtok(NULL, " ")) != NULL) { // 发送内容 hello world
+          pos += sprintf(tmp + pos, "%s", result);
+        }
+        send_msg(tmp, sizeof(tmp), tosocket);
       }
-    } else {
+    } else { // 全服广播
       send_msg(bufSend, recv_num);
     }
   }
