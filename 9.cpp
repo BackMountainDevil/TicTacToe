@@ -6,15 +6,16 @@ const int OS = 1;
 
 #include <iostream>
 using namespace std;
+int BOARD[9] = {0};
 
-void showBoard(int board[]) {
+void showBoard() {
   // 显示棋盘以及棋子
   for (int i = 0; i < 9; i++) {
     cout << " __";
-    if (board[i] == 0) {
+    if (BOARD[i] == 0) {
       cout << i;
     } else {
-      if (board[i] == 1) {
+      if (BOARD[i] == 1) {
         cout << 'x';
       } else {
         cout << 'A';
@@ -29,36 +30,36 @@ void showBoard(int board[]) {
   }
 }
 
-int checkWinner(int board[]) {
+int checkWinner() {
   // 检测赢家，返回值 -1（无赢家） or 1（玩家一） or 2（玩家二）
   int winner = -1;
   for (int i = 0; i < 3; i++) {
-    if (board[i] == board[i + 3] && board[i + 3] == board[i + 6] &&
-        board[i] != 0) { // 竖
-      winner = board[i];
+    if (BOARD[i] == BOARD[i + 3] && BOARD[i + 3] == BOARD[i + 6] &&
+        BOARD[i] != 0) { // 竖
+      winner = BOARD[i];
       break;
-    } else if (board[i * 3] == board[i * 3 + 1] &&
-               board[i * 3 + 1] == board[i * 3 + 2] &&
-               board[i * 3] != 0) { // 横
-      winner = board[i * 3];
+    } else if (BOARD[i * 3] == BOARD[i * 3 + 1] &&
+               BOARD[i * 3 + 1] == BOARD[i * 3 + 2] &&
+               BOARD[i * 3] != 0) { // 横
+      winner = BOARD[i * 3];
       break;
     }
   }
   // 对角线
-  if (board[0] == board[4] && board[4] == board[8] && board[4] != 0) {
-    winner = board[4];
-  } else if (board[2] == board[4] && board[4] == board[6] && board[4] != 0) {
-    winner = board[4];
+  if (BOARD[0] == BOARD[4] && BOARD[4] == BOARD[8] && BOARD[4] != 0) {
+    winner = BOARD[4];
+  } else if (BOARD[2] == BOARD[4] && BOARD[4] == BOARD[6] && BOARD[4] != 0) {
+    winner = BOARD[4];
   }
   return winner;
 }
 
 // 获取用户的合法输入
-int checkInput(int board[]) {
+int checkInput() {
   int pos = -1;
   while (pos < 0 || pos > 8) {
     cin >> pos;
-    if (board[pos] != 0) {
+    if (BOARD[pos] != 0) {
       cout << "Position is not null, try again" << endl;
       pos = -1;
     }
@@ -76,20 +77,20 @@ void clearScreen() {
 
 int main() {
   // 0 表示未有子，1、2分别表示两种棋子
-  int board[9] = {0};
   clearScreen();
-  showBoard(board);
+  showBoard();
   int winner = -1;
 
-  int count = 0;
+  int count = 0, turn;
   while (count < 9) {
     int pos;
-    cout << "Player " << count % 2 + 1 << " : ";
-    pos = checkInput(board);
-    board[pos] = count % 2 + 1;
+    turn = count % 2 + 1;
+    cout << "Player " << turn << " : ";
+    pos = checkInput();
+    BOARD[pos] = turn;
     clearScreen();
-    showBoard(board);
-    winner = checkWinner(board);
+    showBoard();
+    winner = checkWinner();
     if (winner != -1) {
       break;
     }
