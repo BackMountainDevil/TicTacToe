@@ -5,8 +5,10 @@ const int OS = 1;
 #endif
 
 #include <iostream>
+#include <string.h>
+
 using namespace std;
-int BOARD[9] = {0};
+int BOARD[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 void showBoard() {
   // 显示棋盘以及棋子
@@ -75,8 +77,54 @@ void clearScreen() {
     system("clr");
 }
 
+// AI 输入
+int AIInput() {
+  unsigned int i = 0;
+  bool found = false;
+  while (!found && i < 9) {
+    if (BOARD[i] == 0) {
+      BOARD[i] = 2; // 一下能赢的棋
+      if (checkWinner() == 2) {
+        found = true;
+      }
+      BOARD[i] = 0;
+
+      BOARD[i] = 1; // 不下会输的棋
+      if (checkWinner() == 1) {
+        found = true;
+      }
+      BOARD[i] = 0;
+    }
+    i++;
+  }
+
+  if (!found) { //第三种策略
+    const int next[9] = {4, 0, 2, 6, 8, 1, 3, 5, 7};
+    unsigned int k = 0;
+    while (!found && k < 9) {
+      if (BOARD[next[k]] == 0) {
+        found = true;
+      }
+      k++;
+    }
+    return k - 1;
+  } else {
+    return i - 1; // 前两中策略有效
+  }
+}
+
 int main() {
   // 0 表示未有子，1、2分别表示两种棋子
+
+  bool AImodel = false;
+  char command[10];
+  cout << "Play with AI？yes or no" << endl;
+  cin.getline(command, 10);
+
+  if (!strcmp(command, "yes")) { // AI
+    AImodel = true;
+  }
+
   clearScreen();
   showBoard();
   int winner = -1;
@@ -85,8 +133,13 @@ int main() {
   while (count < 9) {
     int pos;
     turn = count % 2 + 1;
-    cout << "Player " << turn << " : ";
-    pos = checkInput();
+    if (AImodel && turn == 2) {
+      pos = AIInput();
+      //   cout << "AI: " << pos << endl;
+    } else {
+      cout << "Player " << turn << " : ";
+      pos = checkInput();
+    }
     BOARD[pos] = turn;
     clearScreen();
     showBoard();
@@ -96,6 +149,17 @@ int main() {
     }
     count++;
   }
-  cout << "The winner is Player : " << winner << endl;
+  switch (winner) {
+  case 1:
+    cout << "YOU WIN!" << endl;
+    break;
+  case 2:
+    cout << "you lose!" << endl;
+    break;
+  case -1:
+    cout << "Nobody win" << endl;
+    break;
+  }
+  cout << "Game Over. Take a rest" << endl;
   return 0;
 }
