@@ -14,6 +14,7 @@ public:
   bool Connect();     // 连接服务器
   bool Start();       // 开始游戏
   void PlayAI();      // 人机对战
+  void Reset();       // 重置棋盘
   void Close();       // 关闭套接字
 
 private:

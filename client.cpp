@@ -34,7 +34,8 @@ Client::Client() {
 
 bool Client::Connect() {
   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-    perror("Error: Connection creation failed");
+    // perror("Error: Connection creation failed");
+    puts("Unable to connect to Server. ");
     close(sock);
     return false;
   } else {
@@ -43,28 +44,11 @@ bool Client::Connect() {
 }
 
 bool Client::Start() {
-  if (this->Connect()) {
-    if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
-      perror("套接字已被关闭 read");
-      close(sock);
-      return false;
-    } else {
-      std::cout << bufRecv << std::endl;
-    }
-    while (true) {
-      std::cin.getline(bufSend, BUF_SIZE);
-      if (!strcmp(bufSend, "\\q")) { // 输入 ‘\q’ ,逐步终止程序
-        shutdown(sock, SHUT_WR);
-        read(sock, bufSend, sizeof(bufSend));
-        break;
-      }
-
-      if (write(sock, bufSend, sizeof(bufSend)) == -1) { // 发送数据
-        perror("套接字已被关闭 write");
-        close(sock);
-        return false;
-      }
-
+  bool iscon = false;
+  bool isFinish = false;
+  while (!isFinish) {
+    iscon = this->Connect();
+    if (iscon) {
       if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
         perror("套接字已被关闭 read");
         close(sock);
@@ -72,10 +56,41 @@ bool Client::Start() {
       } else {
         std::cout << bufRecv << std::endl;
       }
+      while (true) {
+        std::cin.getline(bufSend, BUF_SIZE);
+        if (!strcmp(bufSend, "\\q")) { // 输入 ‘\q’ ,逐步终止程序
+          shutdown(sock, SHUT_WR);
+          read(sock, bufSend, sizeof(bufSend));
+          break;
+        }
+
+        if (write(sock, bufSend, sizeof(bufSend)) == -1) { // 发送数据
+          perror("套接字已被关闭 write");
+          close(sock);
+          return false;
+        }
+
+        if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
+          perror("套接字已被关闭 read");
+          close(sock);
+          return false;
+        } else {
+          std::cout << bufRecv << std::endl;
+        }
+      }
+    } else {
+      std::cout << "'yes' to play with AI, 'no' to connect again, 'q' to exit. "
+                   "[yes/no/q] ";
+      char tmp[5];
+      std::cin.getline(tmp, 5);
+      if (!strcmp(tmp, "yes")) {
+        this->PlayAI();
+      } else if (!strcmp(tmp, "q")) { // 退出游戏
+        break;
+      }
     }
-  } else {
-    this->PlayAI();
   }
+
   return false;
 }
 
@@ -173,16 +188,17 @@ int Client::AIInput() {
       }
       k++;
     }
-    return k - 1;
+    return next[k - 1];
   } else {
     return i - 1; // 前两中策略有效
   }
 }
 
 void Client::PlayAI() {
+  clearScreen();
   showBoard();
   int winner = -1;
-
+  // 默认玩家 1 是用户，玩家 2 是电脑
   int count = 0, turn;
   while (count < 9) {
     int pos;
@@ -190,7 +206,7 @@ void Client::PlayAI() {
     if (turn == 2) {
       pos = AIInput();
     } else {
-      std::cout << "Player " << turn << " : ";
+      std::cout << "You turn: ";
       pos = checkInput();
     }
     BOARD[pos] = turn;
@@ -215,6 +231,13 @@ void Client::PlayAI() {
     break;
   }
   std::cout << "Game Over. Take a rest" << std::endl;
+  this->Reset(); // 不重置再重新开局的话就棋盘还在
+}
+
+void Client::Reset() {
+  for (unsigned int i = 0; i < 9; i++) {
+    this->BOARD[i] = 0;
+  }
 }
 
 void Client::Close() { close(this->sock); }
