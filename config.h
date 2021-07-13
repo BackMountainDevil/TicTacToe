@@ -1,3 +1,9 @@
+#include <arpa/inet.h>
+#include <iostream>
+#include <netdb.h>
+#include <string.h>
+#include <unistd.h>
+
 // server
 #define CLIENTMAX 100 // 最大连接客户数
 
