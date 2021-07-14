@@ -56,9 +56,11 @@ bool Client::Start() {
       } else {
         std::cout << bufRecv << std::endl;
       }
-      std::cout << "connect to Server. '\\Q' to query. 'ai' to play with AI. "
-                   "'\\q' to exit"
-                << std::endl;
+      std::cout << "connect to Server.\n"
+                << "'\\S' to start 匹配. \n"
+                << "'\\Q' to query. \n"
+                << "'ai' to play with AI.\n"
+                << "'\\q' to exit" << std::endl;
 
       while (true) {
         std::cin.getline(bufSend, BUF_SIZE);
@@ -80,11 +82,19 @@ bool Client::Start() {
           perror("套接字已被关闭 read");
           close(sock);
           return false;
+        } else if (bufRecv[0] == '\\' && bufRecv[1] == 'G') { // 匹配成功
+          std::cout << bufRecv << " | ";
+          char *result = NULL;
+          result = strtok(bufRecv, " "); // \G
+          result = strtok(NULL, " ");    // 目标套接字
+          int target = atoi(result);
+          std::cout << target << std::endl;
+
         } else {
           std::cout << bufRecv << std::endl;
         }
       }
-    } else {
+    } else { // 连接失败的时候
       std::cout << "'yes' to play with AI, 'no' to connect again, 'q' to exit. "
                    "[yes/no/q] ";
       char tmp[5];

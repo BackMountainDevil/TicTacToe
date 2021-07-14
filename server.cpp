@@ -7,7 +7,7 @@ char bufSend[BUF_SIZE];
 struct Clients {
   unsigned int sum = 0;               // 客户数
   unsigned int clnt_socks[CLIENTMAX]; // 保存客户套接字的数组
-  char status[CLIENTMAX]; // 'G' 游戏中, 'W' 未匹配队友，'F' 不在线
+  char status[CLIENTMAX]; // 'G' 游戏中, 'W' 未匹配队友，'F' 不在线 ，‘S’ 匹配中
 } cli;
 
 void *send_msg(char *msg, int len, int fd = -1) {
@@ -45,7 +45,7 @@ void *handle_client(void *arg) {
         pthread_mutex_lock(&mutex); // 加锁
         for (int i = 0; i < cli.sum; i++) {
           std::cout << cli.clnt_socks[i] << " | "
-                    << cli.status[cli.clnt_socks[i]] << std::endl;
+                    << cli.status[cli.clnt_socks[i]] << std::endl; // for debug
           if (cli.status[cli.clnt_socks[i]] == 'W') {
 
             pos += sprintf(bufSend + pos, "%d ", cli.clnt_socks[i]);
@@ -64,6 +64,30 @@ void *handle_client(void *arg) {
         pthread_mutex_lock(&mutex);         // 加锁
         cli.status[clnt_sock] = 'W';
         pthread_mutex_unlock(&mutex); // 解锁
+        send_msg(bufSend, recv_num, clnt_sock);
+      } else if (!strcmp(bufSend, "\\S")) { // 匹配对手
+
+        int target = clnt_sock;
+        pthread_mutex_lock(&mutex);   // 加锁
+        cli.status[clnt_sock] = 'S';  // 匹配状态
+        pthread_mutex_unlock(&mutex); // 解锁
+
+        while (target == clnt_sock) {
+          sleep(2); // 2s 让其它匹配的也能进行匹配查询
+          pthread_mutex_lock(&mutex); // 加锁
+          for (unsigned int i = 0; i < cli.sum; i++) {
+            if (cli.clnt_socks[i] != clnt_sock &&
+                cli.status[cli.clnt_socks[i]] == 'S') {
+              target = cli.clnt_socks[i];
+              // cli.status[target] = 'G';
+              // cli.status[clnt_sock] = 'G'; //
+              // 双方进入游戏状态，自己设置自己状态
+              break;
+            }
+          }
+          pthread_mutex_unlock(&mutex); // 解锁
+        }
+        sprintf(bufSend, "\\G %d", target);
         send_msg(bufSend, recv_num, clnt_sock);
       }
       /*     else if (bufSend[1] == 'p') { // “\p 23 hello world“定向通信
