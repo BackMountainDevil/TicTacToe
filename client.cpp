@@ -22,7 +22,9 @@ Client::Client() {
     perror("Error: Invalid address/ Address not supported");
     exit(EXIT_FAILURE);
   }
+}
 
+bool Client::Connect() {
   // 创建套接字
   this->sock = socket(AF_INET, SOCK_STREAM, 0);
   if (this->sock < 0) {
@@ -30,9 +32,6 @@ Client::Client() {
     close(sock);
     exit(EXIT_FAILURE);
   }
-}
-
-bool Client::Connect() {
   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     // perror("Error: Connection creation failed");
     puts("Unable to connect to Server. ");
@@ -49,6 +48,7 @@ bool Client::Start() {
   while (!isFinish) {
     iscon = this->Connect();
     if (iscon) {
+      // 接收自己的序号
       if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
         perror("套接字已被关闭 read");
         close(sock);
@@ -56,12 +56,18 @@ bool Client::Start() {
       } else {
         std::cout << bufRecv << std::endl;
       }
+      std::cout << "connect to Server. '\\Q' to query. 'ai' to play with AI. "
+                   "'\\q' to exit"
+                << std::endl;
+
       while (true) {
         std::cin.getline(bufSend, BUF_SIZE);
-        if (!strcmp(bufSend, "\\q")) { // 输入 ‘\q’ ,逐步终止程序
+        if (!strcmp(bufSend, "ai")) {
+          this->PlayAI();
+        } else if (!strcmp(bufSend, "\\q")) { // 输入 ‘\q’ ,逐步终止程序
           shutdown(sock, SHUT_WR);
           read(sock, bufSend, sizeof(bufSend));
-          break;
+          return 0;
         }
 
         if (write(sock, bufSend, sizeof(bufSend)) == -1) { // 发送数据
