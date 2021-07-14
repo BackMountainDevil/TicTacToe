@@ -43,14 +43,16 @@ void *handle_client(void *arg) {
       if (!strcmp(bufSend, "\\Q")) { // “\Q“ 查询全部在线且不在游戏中的用户
         int pos = 0;
         pthread_mutex_lock(&mutex); // 加锁
+        std::cout << cli.sum << ": ";
         for (int i = 0; i < cli.sum; i++) {
-          std::cout << cli.clnt_socks[i] << " | "
-                    << cli.status[cli.clnt_socks[i]] << std::endl; // for debug
+          std::cout << cli.clnt_socks[i] << "-" << cli.status[cli.clnt_socks[i]]
+                    << " "; // for debug
           if (cli.status[cli.clnt_socks[i]] == 'W') {
 
             pos += sprintf(bufSend + pos, "%d ", cli.clnt_socks[i]);
           }
         }
+        std::cout << "\n";
         bufSend[pos - 1] = '\n';      // 最后一个空格换成 换行符号
         pthread_mutex_unlock(&mutex); // 解锁
         send_msg(bufSend, sizeof(bufSend), clnt_sock);
@@ -111,11 +113,12 @@ void *handle_client(void *arg) {
   pthread_mutex_lock(&mutex);         // 加锁
   for (int i = 0; i < cli.sum; i++) { // 剔除掉线用户
     if (cli.clnt_socks[i] == clnt_sock) {
-      while (i++ < cli.sum - 1) {
+      cli.sum--; // 客户数量减一
+      while (i < cli.sum) {
         cli.clnt_socks[i] = cli.clnt_socks[i + 1];
+        i++;
       }
       std::cout << "Client " << clnt_sock << " disconnect" << std::endl;
-      cli.sum--; // 客户数量减一
       cli.status[clnt_sock] = 'F';
       break;
     }
