@@ -1,10 +1,5 @@
 #include "config.h"
-#include <arpa/inet.h>
-#include <iostream>
-#include <netdb.h>
 #include <pthread.h>
-#include <string.h>
-#include <unistd.h>
 
 pthread_mutex_t mutex; // 互斥量
 char bufSend[BUF_SIZE];
@@ -49,26 +44,43 @@ void *handle_client(void *arg) {
         int pos = 0;
         pthread_mutex_lock(&mutex); // 加锁
         for (int i = 0; i < cli.sum; i++) {
-          pos += sprintf(bufSend + pos, "%d ", cli.clnt_socks[i]);
+          std::cout << cli.clnt_socks[i] << " | "
+                    << cli.status[cli.clnt_socks[i]] << std::endl;
+          if (cli.status[cli.clnt_socks[i]] == 'W') {
+
+            pos += sprintf(bufSend + pos, "%d ", cli.clnt_socks[i]);
+          }
         }
         bufSend[pos - 1] = '\n';      // 最后一个空格换成 换行符号
         pthread_mutex_unlock(&mutex); // 解锁
         send_msg(bufSend, sizeof(bufSend), clnt_sock);
-      } else if (bufSend[1] == 'p') { // “\p 23 hello world“定向通信
-        char *result = NULL;
-        result = strtok(bufSend, " "); // \p
-        result = strtok(NULL, " ");    // 目标套接字 23
-        int tosocket = atoi(result);
-        int pos = 0;
-        char tmp[BUF_SIZE];
-        pos += sprintf(tmp + pos, "\\pf %d ", clnt_sock);
-        while ((result = strtok(NULL, " ")) != NULL) { // 发送内容 hello world
-          pos += sprintf(tmp + pos, "%s", result);
-        }
-        send_msg(tmp, sizeof(tmp), tosocket);
+      } else if (!strcmp(bufSend, "\\G")) { // 进入游戏，更改状态为游戏中
+        pthread_mutex_lock(&mutex);         // 加锁
+        cli.status[clnt_sock] = 'G';
+        pthread_mutex_unlock(&mutex); // 解锁
+        send_msg(bufSend, recv_num, clnt_sock);
+
+      } else if (!strcmp(bufSend, "\\W")) { // 结束游戏，更改状态
+        pthread_mutex_lock(&mutex);         // 加锁
+        cli.status[clnt_sock] = 'W';
+        pthread_mutex_unlock(&mutex); // 解锁
+        send_msg(bufSend, recv_num, clnt_sock);
       }
-    } else { // 全服广播
-      send_msg(bufSend, recv_num);
+      /*     else if (bufSend[1] == 'p') { // “\p 23 hello world“定向通信
+            char *result = NULL;
+            result = strtok(bufSend, " "); // \p
+            result = strtok(NULL, " ");    // 目标套接字 23
+            int tosocket = atoi(result);
+            int pos = 0;
+            char tmp[BUF_SIZE];
+            pos += sprintf(tmp + pos, "\\pf %d ", clnt_sock);
+            while ((result = strtok(NULL, " ")) != NULL) { // 发送内容 hello
+         world pos += sprintf(tmp + pos, "%s", result);
+            }
+            send_msg(tmp, sizeof(tmp), tosocket);
+          } */
+    } else { // 原路回声
+      send_msg(bufSend, recv_num, clnt_sock);
     }
   }
 
@@ -151,7 +163,7 @@ int main() {
       cli.status[clnt_sock] = 'W';
       pthread_mutex_unlock(&mutex); // 解锁
 
-      sprintf(bufSend, "\\%d", clnt_sock); // 告诉用户自己的套接字号
+      sprintf(bufSend, "\\s %d", clnt_sock); // 告诉用户自己的套接字号
       send_msg(bufSend, sizeof(bufSend), clnt_sock);
 
       // 创建线程

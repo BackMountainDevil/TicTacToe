@@ -37,6 +37,10 @@
 ### 第一版
 就一个字符串，如果开头是斜杠，表明是特殊指令。如 \Q 代表获取全服在线但不在游戏中的客户编号，12 号输入 \p 23 hello world 代表向客户 23 发送 hello world，23 号就会收到  \pf 12 hello world 。但是分割字符串麻烦，过于繁琐
 
+- \Q: 获取全服在线但不在游戏中的客户编号
+- \G: 告诉服务端我游戏开始了，不再接受匹配
+- \W: 告诉服务端我游戏结束了，蹲好友一起玩
+
 比较考验各种类型之间的转换
 
 - [C/C++ | 字符型数组char*的分割和string的分割 | strtok()函数 | find()和substr()函数 stone_fall 2019-03-18](https://blog.csdn.net/stone_fall/article/details/88640469)
