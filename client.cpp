@@ -243,17 +243,22 @@ bool Client::Start() {
   return false;
 }
 
-void Client::showBoard() {
-  // 显示棋盘以及棋子
+void Client::showBoard(unsigned int bckgcolor, unsigned int fregcolor,
+                       unsigned int Acolor, unsigned int Bcolor) {
+  // 显示棋盘以及棋子，四个参数分别是前景色、背景色，A棋颜色，B棋颜色，均有默认值
   for (int i = 0; i < 9; i++) {
     std::cout << " __";
     if (BOARD[i] == 0) {
       std::cout << i;
     } else {
       if (BOARD[i] == 1) {
+        printf("\033[%d;%dm", bckgcolor, Acolor);
         std::cout << CHESSA;
+        printf("\033[%d;%dm", bckgcolor, fregcolor);
       } else {
+        printf("\033[%d;%dm", bckgcolor, Bcolor);
         std::cout << CHESSB;
+        printf("\033[%d;%dm", bckgcolor, fregcolor);
       }
     }
 

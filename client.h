@@ -4,10 +4,12 @@
 
 class Client {
 public:
-  Client();          // 创建套接字
-  void showBoard();  // 显示棋盘以及棋子
-  int checkInput();  // 获取用户的合法输入
-  int checkWinner(); // 检测赢家
+  Client(); // 创建套接字
+  void showBoard(unsigned int bckgcolor = 47, unsigned int fregcolor = 30,
+                 unsigned int Acolor = 32,
+                 unsigned int Bcolor = 35); // 显示棋盘以及棋子
+  int checkInput();                         // 获取用户的合法输入
+  int checkWinner();                        // 检测赢家
   void ShowWinner(int winner, bool isfirst = true); // 输出赢家输家
   void clearScreen(); // 清空控制台所有内容
   int AIInput();      // AI 输入
