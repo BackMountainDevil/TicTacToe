@@ -1,8 +1,3 @@
-#ifdef __linux__
-const int OS = 0;
-#elif defined(_WIN32)
-const int OS = 1;
-#endif
 #include "client.h"
 
 Client::Client() {
@@ -82,14 +77,93 @@ bool Client::Start() {
           perror("套接字已被关闭 read");
           close(sock);
           return false;
-        } else if (bufRecv[0] == '\\' && bufRecv[1] == 'G') { // 匹配成功
+        } else if (bufRecv[0] == '\\' &&
+                   bufRecv[1] == 'G') { // 匹配到可能的对手
           std::cout << bufRecv << " | ";
           char *result = NULL;
           result = strtok(bufRecv, " "); // \G
           result = strtok(NULL, " ");    // 目标套接字
           int target = atoi(result);
           std::cout << target << std::endl;
+          result = strtok(NULL, " "); // 指令，是否先手
+          bool isfirst = false;
+          if (!strcmp(result, "step1")) {
+            puts("YOu first");
+            isfirst = true;
+          }
+          // 开始游戏
+          showBoard();
+          int winner = -1;
+          // 默认 先手 1 是自己，后手 2 是自己
+          int count = 0, turn;
+          while (count < 9) {
+            int pos;
+            turn = count % 2 + 1;
+            if (turn == 2) {
+              if (isfirst) { // 先手等待
+                read(sock, bufRecv, sizeof(bufRecv));
+                result = NULL;
+                result = strtok(bufRecv, " "); // \p
+                result = strtok(NULL, " ");    // 套接字
+                result = strtok(NULL, " ");    //
+                pos = atoi(result);
 
+              } else { // 后手下棋
+                std::cout << "You turn: ";
+                pos = checkInput();
+                std::sprintf(bufSend, "\\p %d %d", target,
+                             pos); // 向对方发送自己的棋
+                write(sock, bufSend, sizeof(bufSend));
+              }
+            } else {         // turn 1
+              if (isfirst) { // 先手
+                std::cout << "You turn: ";
+                pos = checkInput();
+                std::sprintf(bufSend, "\\p %d %d", target,
+                             pos); // 向对方发送自己的棋
+                write(sock, bufSend, sizeof(bufSend));
+              } else { // 后手等待
+                read(sock, bufRecv, sizeof(bufRecv));
+                result = NULL;
+                result = strtok(bufRecv, " "); // \p
+                result = strtok(NULL, " ");    // 套接字
+                result = strtok(NULL, " ");    //
+                pos = atoi(result);
+              }
+            }
+
+            BOARD[pos] = turn;
+            clearScreen();
+            showBoard();
+            winner = checkWinner();
+            if (winner > -1) {
+              break;
+            }
+            count++;
+          }
+          switch (winner) {
+          case 1:
+            if (isfirst) {
+              std::cout << "YOU WIN!" << std::endl;
+            } else {
+              std::cout << "you lose!" << std::endl;
+            }
+            break;
+          case 2:
+            if (isfirst) {
+              std::cout << "you lose!" << std::endl;
+            } else {
+              std::cout << "YOU WIN!" << std::endl;
+            }
+            break;
+          case 0:
+            std::cout << "Nobody win" << std::endl;
+            break;
+          }
+          std::cout << "Game Over. Take a rest" << std::endl;
+          this->Reset();                // 重置棋盘
+          std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
+          write(sock, bufSend, sizeof(bufSend));
         } else {
           std::cout << bufRecv << std::endl;
         }
@@ -145,7 +219,7 @@ int Client::checkInput() {
 }
 
 int Client::checkWinner() {
-  // 检测赢家，返回值 -1（无赢家） or 1（玩家一） or 2（玩家二）
+  // 检测赢家，返回值 -1（无赢家） or 1（玩家一） or 2（玩家二）or 0 （平手）
   int winner = -1;
   for (int i = 0; i < 3; i++) {
     if (BOARD[i] == BOARD[i + 3] && BOARD[i + 3] == BOARD[i + 6] &&
@@ -165,15 +239,20 @@ int Client::checkWinner() {
   } else if (BOARD[2] == BOARD[4] && BOARD[4] == BOARD[6] && BOARD[4] != 0) {
     winner = BOARD[4];
   }
+
+  if (winner == -1) { // 检查是否平手
+    winner = 0;       // 假设平手
+    for (unsigned int i = 0; i < 9; i++) {
+      if (BOARD[i] == 0) { // 有空位置没下，推翻假设
+        winner = -1;
+        break;
+      }
+    }
+  }
   return winner;
 }
 
-void Client::clearScreen() {
-  if (OS == 0)
-    system("clear");
-  else
-    system("clr");
-}
+void Client::clearScreen() { system("clear"); }
 
 int Client::AIInput() {
   unsigned int i = 0;
@@ -242,7 +321,7 @@ void Client::PlayAI() {
   case 2:
     std::cout << "you lose!" << std::endl;
     break;
-  case -1:
+  case 0:
     std::cout << "Nobody win" << std::endl;
     break;
   }
