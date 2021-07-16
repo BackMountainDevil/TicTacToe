@@ -1,9 +1,11 @@
 #include "client.h"
 
 // 菜单
-const char *oflinemenu[] = {"游戏菜单", "1. 重新连接服务器", "2. AI 模式",
-                            "3. 退出游戏"};
+const char *offlinemenu[] = {"游戏菜单 - 离线模式", "1. 重新连接服务器",
+                             "2. AI 模式", "3. 退出游戏"};
 
+const char *onlinemenu[] = {"游戏菜单 - 联机模式", "1. 开始匹配", "2. AI 模式",
+                            "3. 退出游戏"};
 // 可操作的按键
 enum {
   UP = 119,   // W
@@ -127,7 +129,7 @@ bool Client::Start() {
   bool isFinish = false;
   while (!isFinish) {
     iscon = this->Connect();
-    if (iscon) {
+    if (iscon) { // 联机模式
       // 接收自己的序号
       if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
         perror("套接字已被关闭 read");
@@ -136,126 +138,127 @@ bool Client::Start() {
       } else {
         std::cout << bufRecv << std::endl;
       }
-      std::cout << "connect to Server.\n"
-                << "'\\S' to start 匹配. \n"
-                << "'\\Q' to query. \n"
-                << "'ai' to play with AI.\n"
-                << "'\\q' to exit" << std::endl;
 
       while (true) {
-        std::cin.getline(bufSend, BUF_SIZE);
-        if (!strcmp(bufSend, "ai")) {
-          this->PlayAI();
-        } else if (!strcmp(bufSend, "\\q")) { // 输入 ‘\q’ ,逐步终止程序
-          shutdown(sock, SHUT_WR);
-          read(sock, bufSend, sizeof(bufSend));
-          return 0;
-        }
-
-        if (write(sock, bufSend, sizeof(bufSend)) == -1) { // 发送数据
-          perror("套接字已被关闭 write");
-          close(sock);
-          return false;
-        }
-
-        if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
-          perror("套接字已被关闭 read");
-          close(sock);
-          return false;
-        } else if (bufRecv[0] == '\\' &&
-                   bufRecv[1] == 'G') { // 匹配到可能的对手
-          std::cout << bufRecv << " | ";
-          char *result = NULL;
-          result = strtok(bufRecv, " "); // \G
-          result = strtok(NULL, " ");    // 目标套接字
-          int target = atoi(result);
-          std::cout << target << std::endl;
-          result = strtok(NULL, " "); // 指令，是否先手
-          bool isfirst = false;
-          if (!strcmp(result, "step1")) {
-            puts("YOu first");
-            isfirst = true;
-          }
-          // 开始游戏
-          showBoard();
-          int winner = -1;
-          // 默认 先手 1 是自己，后手 2 是自己
-          int count = 0, turn;
-          while (count < 9) {
-            int pos;
-            turn = count % 2 + 1;
-            if (turn == 2) {
-              if (isfirst) { // 先手等待
-                read(sock, bufRecv, sizeof(bufRecv));
-                result = NULL;
-                result = strtok(bufRecv, " "); // \p
-                result = strtok(NULL, " ");    // 套接字
-                result = strtok(NULL, " ");    //
-                pos = atoi(result);
-
-              } else { // 后手下棋
-                std::cout << "You turn: ";
-                pos = checkInput();
-                std::sprintf(bufSend, "\\p %d %d", target,
-                             pos); // 向对方发送自己的棋
-                write(sock, bufSend, sizeof(bufSend));
+        // std::cin.getline(bufSend, BUF_SIZE);
+        ShowMenu(onlinemenu, 3, menuindex, 47, 30, 32, 34, windows, 0.2, 0.4);
+        if (GetMenuInput(&menuindex, 1, 3) == ENTER) {
+          if (menuindex == 3) { // 逐步终止程序
+            isFinish = true;
+            shutdown(sock, SHUT_WR);
+            read(sock, bufSend, sizeof(bufSend));
+            return 0;
+          } else if (menuindex == 2) { // 人机模式
+            this->PlayAI();
+          } else if (menuindex == 1) { // 联机模式
+            std::sprintf(bufSend, "\\S");
+            if (write(sock, bufSend, sizeof(bufSend)) == -1) { // 发送匹配申请
+              perror("套接字已被关闭 write");
+              close(sock);
+              return false;
+            }
+            if (read(sock, bufRecv, sizeof(bufRecv)) == -1) { // 接收匹配结果
+              perror("套接字已被关闭 read");
+              close(sock);
+              return false;
+            } else if (bufRecv[0] == '\\' &&
+                       bufRecv[1] == 'G') { // 匹配到可能的对手
+              std::cout << bufRecv << " | ";
+              char *result = NULL;
+              result = strtok(bufRecv, " "); // \G
+              result = strtok(NULL, " ");    // 目标套接字
+              int target = atoi(result);
+              std::cout << target << std::endl;
+              result = strtok(NULL, " "); // 指令，是否先手
+              bool isfirst = false;
+              if (!strcmp(result, "step1")) {
+                puts("YOu first");
+                isfirst = true;
               }
-            } else {         // turn 1
-              if (isfirst) { // 先手
-                std::cout << "You turn: ";
-                pos = checkInput();
-                std::sprintf(bufSend, "\\p %d %d", target,
-                             pos); // 向对方发送自己的棋
-                write(sock, bufSend, sizeof(bufSend));
-              } else { // 后手等待
-                read(sock, bufRecv, sizeof(bufRecv));
-                result = NULL;
-                result = strtok(bufRecv, " "); // \p
-                result = strtok(NULL, " ");    // 套接字
-                result = strtok(NULL, " ");    //
-                pos = atoi(result);
-              }
-            }
+              // 开始游戏
+              showBoard();
+              int winner = -1;
+              // 默认 先手 1 是自己，后手 2 是自己
+              int count = 0, turn;
+              while (count < 9) {
+                int pos;
+                turn = count % 2 + 1;
+                if (turn == 2) {
+                  if (isfirst) { // 先手等待
+                    read(sock, bufRecv, sizeof(bufRecv));
+                    result = NULL;
+                    result = strtok(bufRecv, " "); // \p
+                    result = strtok(NULL, " ");    // 套接字
+                    result = strtok(NULL, " ");    //
+                    pos = atoi(result);
 
-            BOARD[pos] = turn;
-            clearScreen();
-            showBoard();
-            winner = checkWinner();
-            if (winner > -1) {
-              break;
-            }
-            count++;
-          }
-          switch (winner) {
-          case 1:
-            if (isfirst) {
-              std::cout << "YOU WIN!" << std::endl;
+                  } else { // 后手下棋
+                    std::cout << "You turn: ";
+                    pos = checkInput();
+                    std::sprintf(bufSend, "\\p %d %d", target,
+                                 pos); // 向对方发送自己的棋
+                    write(sock, bufSend, sizeof(bufSend));
+                  }
+                } else {         // turn 1
+                  if (isfirst) { // 先手
+                    std::cout << "You turn: ";
+                    pos = checkInput();
+                    std::sprintf(bufSend, "\\p %d %d", target,
+                                 pos); // 向对方发送自己的棋
+                    write(sock, bufSend, sizeof(bufSend));
+                  } else { // 后手等待
+                    read(sock, bufRecv, sizeof(bufRecv));
+                    result = NULL;
+                    result = strtok(bufRecv, " "); // \p
+                    result = strtok(NULL, " ");    // 套接字
+                    result = strtok(NULL, " ");    //
+                    pos = atoi(result);
+                  }
+                }
+
+                BOARD[pos] = turn;
+                clearScreen();
+                showBoard();
+                winner = checkWinner();
+                if (winner > -1) {
+                  break;
+                }
+                count++;
+              }
+              switch (winner) {
+              case 1:
+                if (isfirst) {
+                  std::cout << "YOU WIN!" << std::endl;
+                } else {
+                  std::cout << "you lose!" << std::endl;
+                }
+                break;
+              case 2:
+                if (isfirst) {
+                  std::cout << "you lose!" << std::endl;
+                } else {
+                  std::cout << "YOU WIN!" << std::endl;
+                }
+                break;
+              case 0:
+                std::cout << "Nobody win" << std::endl;
+                break;
+              }
+              std::cout << "Game Over. Press ENTER to continue" << std::endl;
+              this->Reset();                // 重置棋盘
+              std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
+              write(sock, bufSend, sizeof(bufSend));
+              read(sock, bufRecv, sizeof(bufRecv));
+              getchar(); // 两个模拟暂停
+              getchar();
             } else {
-              std::cout << "you lose!" << std::endl;
+              std::cout << bufRecv << std::endl;
             }
-            break;
-          case 2:
-            if (isfirst) {
-              std::cout << "you lose!" << std::endl;
-            } else {
-              std::cout << "YOU WIN!" << std::endl;
-            }
-            break;
-          case 0:
-            std::cout << "Nobody win" << std::endl;
-            break;
           }
-          std::cout << "Game Over. Take a rest" << std::endl;
-          this->Reset();                // 重置棋盘
-          std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
-          write(sock, bufSend, sizeof(bufSend));
-          read(sock, bufRecv, sizeof(bufRecv));
-        } else {
-          std::cout << bufRecv << std::endl;
         }
       }
     } else { // 连接失败的时候
-      ShowMenu(oflinemenu, 3, menuindex, 47, 30, 32, 34, windows, 0.2, 0.4);
+      ShowMenu(offlinemenu, 3, menuindex, 47, 30, 32, 34, windows, 0.2, 0.4);
       if (GetMenuInput(&menuindex, 1, 3) == ENTER) {
         if (menuindex == 3) {
           break;
