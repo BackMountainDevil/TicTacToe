@@ -73,10 +73,10 @@ void *handle_client(void *arg) {
         pthread_mutex_lock(&mutex);   // 加锁
         cli.status[clnt_sock] = 'S';  // 匹配状态
         pthread_mutex_unlock(&mutex); // 解锁
-
+        unsigned int k = 0;           // 计时用
         while (target == clnt_sock) {
-          sleep(2);      // 2s 让其它匹配的也能进行匹配查询
-          puts("S ing"); // for debug
+          sleep(2); // 2s 让其它匹配的也能进行匹配查询
+          printf("S ing - %d\n", clnt_sock);  // for debug
           pthread_mutex_lock(&mutex);         // 加锁
           if (cli.status[clnt_sock] == 'G') { // 如果已经被匹配
             pthread_mutex_unlock(&mutex);     // 解锁
@@ -98,9 +98,18 @@ void *handle_client(void *arg) {
               break;
             }
           }
+          if (k > 10) {                  // 超时，匹配失败
+            cli.status[clnt_sock] = 'W'; // 恢复原状态
+            sprintf(bufSend, "\\S fail");
+            send_msg(bufSend, recv_num, clnt_sock);
+            printf("S fail - %d\n", clnt_sock); // for debug
+            pthread_mutex_unlock(&mutex);       // 解锁
+            break;
+          }
+          k++;
           pthread_mutex_unlock(&mutex); // 解锁
         }
-        puts("S done"); // for debug
+        printf("S done - %d\n", clnt_sock); // for debug
 
       } else if (bufSend[1] == 'p') { // “\p 23 hello world“定向通信
         char *result = NULL;
