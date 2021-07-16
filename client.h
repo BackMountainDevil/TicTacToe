@@ -16,6 +16,16 @@ public:
   void PlayAI();      // 人机对战
   void Reset();       // 重置棋盘
   void Close();       // 关闭套接字
+  void ResetColor(); /*  取消前面的 VT 控制码设置 */
+  void SetColor(unsigned int bckgcolor,
+                unsigned int fregcolor); // 初始化背景色和前景色。
+  void ShowMenu(const char **menu, unsigned int size, unsigned int index,
+                unsigned int bckgcolor, unsigned int fregcolor,
+                unsigned int tilcolor, unsigned int indexcolor,
+                struct winsize windows, float rowscale,
+                float colscale); // 显示用户菜单。
+  int GetMenuInput(unsigned int *index, unsigned int start,
+                   unsigned int end); // 获取用户输入的 ASCII
 
 private:
   int BOARD[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -23,6 +33,8 @@ private:
   char bufSend[BUF_SIZE];
   char bufRecv[BUF_SIZE];
   struct sockaddr_in serv_addr;
+  unsigned int menuindex = 1; // 默认菜单选项
+  struct winsize windows;     // 终端窗口大小
 };
 
 #endif

@@ -47,3 +47,10 @@
 比较考验各种类型之间的转换
 
 - [C/C++ | 字符型数组char*的分割和string的分割 | strtok()函数 | find()和substr()函数 stone_fall 2019-03-18](https://blog.csdn.net/stone_fall/article/details/88640469)
+
+# 三步走开发过程
+1. 单机双人井子棋
+2. AI 井子棋
+3. 网络对战井子棋
+
+网络对战有点麻烦，虽然知道是 socket 编程，用 asio 或者 rpc 也还没有入门太深，便重新抓起 [socket](https://github.com/BackMountainDevil/socket)，把 socket 重新撸了一遍，然后从中挑一个适合自己的加入井字棋中。加入这一步花了很长时间尝试怎么握手，要不要三次握手。。通信格式也是最粗糙的，目前是能正常玩耍，整完网络之后，然后想着控制台太单调了，整点 GUI，用 easyx，MFC，Qt 似乎都行，不过文档中给的案例是控制台版本，那就在控制台上整点颜色瞧瞧吧，于是又撸了 [VT100](https://github.com/BackMountainDevil/BeautyConsoleMenu).
