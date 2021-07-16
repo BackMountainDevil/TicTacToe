@@ -164,6 +164,7 @@ bool Client::Start() {
           this->Reset();                // 重置棋盘
           std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
           write(sock, bufSend, sizeof(bufSend));
+          read(sock, bufRecv, sizeof(bufRecv));
         } else {
           std::cout << bufRecv << std::endl;
         }
