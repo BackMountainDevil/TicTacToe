@@ -133,8 +133,13 @@ void *handle_client(void *arg) {
         unsigned int k = 0;           // 计时用
         while (target == clnt_sock) {
 <<<<<<< HEAD
+<<<<<<< HEAD
           sleep(2); // 2s 让其它匹配的也能进行匹配查询
           printf("S ing - %d\n", clnt_sock);  // for debug
+=======
+          sleep(2);      // 2s 让其它匹配的也能进行匹配查询
+          puts("S ing"); // for debug
+>>>>>>> d83b370012a8726977ea7066df50339f80fd9db6
 =======
           sleep(2);      // 2s 让其它匹配的也能进行匹配查询
           puts("S ing"); // for debug
@@ -172,9 +177,13 @@ void *handle_client(void *arg) {
           pthread_mutex_unlock(&mutex); // 解锁
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
         printf("S done - %d\n", clnt_sock); // for debug
 =======
-        puts("S done"); // for debug
+        puts("S done");  // for debug
+>>>>>>> d83b370012a8726977ea7066df50339f80fd9db6
+=======
+        puts("S done");  // for debug
 >>>>>>> d83b370012a8726977ea7066df50339f80fd9db6
 
       } else if (bufSend[1] == 'p') { // “\p 23 hello world“定向通信
