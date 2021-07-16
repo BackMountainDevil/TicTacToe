@@ -63,7 +63,7 @@ void Client::ShowMenu(const char **menu, unsigned int size, unsigned int index,
     } else if (i == 0) {                          // 菜单标题
       printf("\033[%dB\033[%dC", posrow, poscol); // 光标下移、右移动
       printf("\033[%d;%dm", bckgcolor, tilcolor);
-      printf("\t  %s\n", menu[i]);
+      printf("%s\n", menu[i]);
       printf("\033[%d;%dm", bckgcolor, fregcolor);
     } else {                      // 未选中的菜单子项
       printf("\033[%dC", poscol); // 光标右移动
@@ -115,8 +115,7 @@ bool Client::Connect() {
     exit(EXIT_FAILURE);
   }
   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-    // perror("Error: Connection creation failed");
-    puts("Unable to connect to Server. ");
+    perror("Error: Connection creation failed");
     close(sock);
     return false;
   } else {
@@ -129,18 +128,15 @@ bool Client::Start() {
   bool isFinish = false;
   while (!isFinish) {
     iscon = this->Connect();
-    if (iscon) { // 联机模式
-      // 接收自己的序号
-      if (read(sock, bufRecv, sizeof(bufRecv)) == -1) {
+    if (iscon) {                                        // 联机模式
+      if (read(sock, bufRecv, sizeof(bufRecv)) == -1) { // 接收自己的序号
         perror("套接字已被关闭 read");
         close(sock);
         return false;
       } else {
-        std::cout << bufRecv << std::endl;
+        // std::cout << bufRecv << std::endl;
       }
-
       while (true) {
-        // std::cin.getline(bufSend, BUF_SIZE);
         ShowMenu(onlinemenu, 3, menuindex, 47, 30, 32, 34, windows, 0.2, 0.4);
         if (GetMenuInput(&menuindex, 1, 3) == ENTER) {
           if (menuindex == 3) { // 逐步终止程序
@@ -151,6 +147,8 @@ bool Client::Start() {
           } else if (menuindex == 2) { // 人机模式
             this->PlayAI();
           } else if (menuindex == 1) { // 联机模式
+            clearScreen();
+            std::cout << "正在寻找对手" << std::endl;
             std::sprintf(bufSend, "\\S");
             if (write(sock, bufSend, sizeof(bufSend)) == -1) { // 发送匹配申请
               perror("套接字已被关闭 write");
@@ -163,12 +161,10 @@ bool Client::Start() {
               return false;
             } else if (bufRecv[0] == '\\' &&
                        bufRecv[1] == 'G') { // 匹配到可能的对手
-              std::cout << bufRecv << " | ";
               char *result = NULL;
               result = strtok(bufRecv, " "); // \G
               result = strtok(NULL, " ");    // 目标套接字
               int target = atoi(result);
-              std::cout << target << std::endl;
               result = strtok(NULL, " "); // 指令，是否先手
               bool isfirst = false;
               if (!strcmp(result, "step1")) {
@@ -176,24 +172,26 @@ bool Client::Start() {
                 isfirst = true;
               }
               // 开始游戏
+              clearScreen();
               showBoard();
               int winner = -1;
               // 默认 先手 1 是自己，后手 2 是自己
-              int count = 0, turn;
+              int count = 0, turn, pos;
               while (count < 9) {
-                int pos;
                 turn = count % 2 + 1;
+                clearScreen();
+                showBoard();
                 if (turn == 2) {
                   if (isfirst) { // 先手等待
+                    std::cout << "等待对方落子中...\n";
                     read(sock, bufRecv, sizeof(bufRecv));
                     result = NULL;
                     result = strtok(bufRecv, " "); // \p
                     result = strtok(NULL, " ");    // 套接字
-                    result = strtok(NULL, " ");    //
+                    result = strtok(NULL, " ");    // 落子位置
                     pos = atoi(result);
-
                   } else { // 后手下棋
-                    std::cout << "You turn: ";
+                    std::cout << "轮到你落子啦: ";
                     pos = checkInput();
                     std::sprintf(bufSend, "\\p %d %d", target,
                                  pos); // 向对方发送自己的棋
@@ -201,12 +199,13 @@ bool Client::Start() {
                   }
                 } else {         // turn 1
                   if (isfirst) { // 先手
-                    std::cout << "You turn: ";
+                    std::cout << "轮到你落子啦: ";
                     pos = checkInput();
                     std::sprintf(bufSend, "\\p %d %d", target,
                                  pos); // 向对方发送自己的棋
                     write(sock, bufSend, sizeof(bufSend));
                   } else { // 后手等待
+                    std::cout << "等待对方落子中...\n";
                     read(sock, bufRecv, sizeof(bufRecv));
                     result = NULL;
                     result = strtok(bufRecv, " "); // \p
@@ -215,10 +214,7 @@ bool Client::Start() {
                     pos = atoi(result);
                   }
                 }
-
                 BOARD[pos] = turn;
-                clearScreen();
-                showBoard();
                 winner = checkWinner();
                 if (winner > -1) {
                   break;
@@ -228,23 +224,23 @@ bool Client::Start() {
               switch (winner) {
               case 1:
                 if (isfirst) {
-                  std::cout << "YOU WIN!" << std::endl;
+                  std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
                 } else {
-                  std::cout << "you lose!" << std::endl;
+                  std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
                 }
                 break;
               case 2:
                 if (isfirst) {
-                  std::cout << "you lose!" << std::endl;
+                  std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
                 } else {
-                  std::cout << "YOU WIN!" << std::endl;
+                  std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
                 }
                 break;
               case 0:
-                std::cout << "Nobody win" << std::endl;
+                std::cout << "这次不分伯仲呢" << std::endl;
                 break;
               }
-              std::cout << "Game Over. Press ENTER to continue" << std::endl;
+              std::cout << "玩耍结束. 按 回车键 继续" << std::endl;
               this->Reset();                // 重置棋盘
               std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
               write(sock, bufSend, sizeof(bufSend));
@@ -252,7 +248,9 @@ bool Client::Start() {
               getchar(); // 两个模拟暂停
               getchar();
             } else {
-              std::cout << bufRecv << std::endl;
+              std::cout << "还没有匹配到和你一样机智的人类. 按 回车键 继续"
+                        << std::endl;
+              getchar();
             }
           }
         }
@@ -389,7 +387,7 @@ void Client::PlayAI() {
     if (turn == 2) {
       pos = AIInput();
     } else {
-      std::cout << "You turn: ";
+      std::cout << "轮到机智的你落子啦: ";
       pos = checkInput();
     }
     BOARD[pos] = turn;
@@ -404,16 +402,16 @@ void Client::PlayAI() {
 
   switch (winner) {
   case 1:
-    std::cout << "YOU WIN!" << std::endl;
+    std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
     break;
   case 2:
-    std::cout << "you lose!" << std::endl;
+    std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
     break;
   case 0:
-    std::cout << "Nobody win" << std::endl;
+    std::cout << "这次不分伯仲呢" << std::endl;
     break;
   }
-  std::cout << "Game Over. Press ENTER to continue" << std::endl;
+  std::cout << "玩耍结束. 按 回车键 继续" << std::endl;
   this->Reset(); // 不重置再重新开局的话就棋盘还在
   getchar();     // 为了缓冲暂停一下，一个不够
   getchar();
