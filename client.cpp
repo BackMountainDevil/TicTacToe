@@ -164,7 +164,10 @@ bool Client::Start() {
           this->Reset();                // 重置棋盘
           std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
           write(sock, bufSend, sizeof(bufSend));
+<<<<<<< HEAD
           read(sock, bufRecv, sizeof(bufRecv));
+=======
+>>>>>>> d83b370012a8726977ea7066df50339f80fd9db6
         } else {
           std::cout << bufRecv << std::endl;
         }
@@ -253,7 +256,11 @@ int Client::checkWinner() {
   return winner;
 }
 
+<<<<<<< HEAD
 void Client::clearScreen() { system("clear"); }
+=======
+void Client::clearScreen() { system("clr"); }
+>>>>>>> d83b370012a8726977ea7066df50339f80fd9db6
 
 int Client::AIInput() {
   unsigned int i = 0;
