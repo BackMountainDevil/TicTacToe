@@ -44,7 +44,7 @@ menu 从零开始计数,无标题的话 index 和 i 上界都要要减一，但�
 void Client::ShowMenu(const char **menu, unsigned int size, unsigned int index,
                       unsigned int bckgcolor, unsigned int fregcolor,
                       unsigned int tilcolor, unsigned int indexcolor,
-                      struct winsize windows, float rowscale, float colscale) {
+                      float rowscale, float colscale) {
   unsigned int posrow = rowscale * windows.ws_row;
   unsigned int poscol = colscale * windows.ws_col;
   system("clear"); // 清空控制台
@@ -52,7 +52,7 @@ void Client::ShowMenu(const char **menu, unsigned int size, unsigned int index,
     if (i == index) {             // 被选中的菜单子项
       printf("\033[%dC", poscol); // 光标右移动
       printf("\033[%d;%dm", bckgcolor, indexcolor);
-      printf("\t->%s\n", menu[i]);
+      printf("  ->%s\n", menu[i]);
       printf("\033[%d;%dm", bckgcolor, fregcolor);
     } else if (i == 0) {                          // 菜单标题
       printf("\033[%dB\033[%dC", posrow, poscol); // 光标下移、右移动
@@ -61,7 +61,7 @@ void Client::ShowMenu(const char **menu, unsigned int size, unsigned int index,
       printf("\033[%d;%dm", bckgcolor, fregcolor);
     } else {                      // 未选中的菜单子项
       printf("\033[%dC", poscol); // 光标右移动
-      printf("\t  %s\n", menu[i]);
+      printf("    %s\n", menu[i]);
     }
   }
 }
@@ -131,7 +131,7 @@ bool Client::Start() {
         // std::cout << bufRecv << std::endl;
       }
       while (true) {
-        ShowMenu(onlinemenu, 3, menuindex, 47, 30, 32, 34, windows, 0.2, 0.4);
+        ShowMenu(onlinemenu, 3, menuindex);
         if (GetMenuInput(&menuindex, 1, 3) == ENTER) {
           if (menuindex == 3) { // 逐步终止程序
             isFinish = true;
@@ -229,7 +229,7 @@ bool Client::Start() {
         }
       }
     } else { // 连接失败的时候
-      ShowMenu(offlinemenu, 3, menuindex, 47, 30, 32, 34, windows, 0.2, 0.4);
+      ShowMenu(offlinemenu, 3, menuindex);
       if (GetMenuInput(&menuindex, 1, 3) == ENTER) {
         if (menuindex == 3) {
           break;
@@ -244,9 +244,15 @@ bool Client::Start() {
 }
 
 void Client::showBoard(unsigned int bckgcolor, unsigned int fregcolor,
-                       unsigned int Acolor, unsigned int Bcolor) {
+                       unsigned int Acolor, unsigned int Bcolor, float rowscale,
+                       float colscale) {
   // 显示棋盘以及棋子，四个参数分别是前景色、背景色，A棋颜色，B棋颜色，均有默认值
+  unsigned int posrow = rowscale * windows.ws_row;
+  unsigned int poscol = colscale * windows.ws_col;
+  // printf("\033[%dB", posrow); // 光标下移、右移动
+  printf("\033[%dB\033[%dC", posrow, poscol); // 光标下移、右移动
   for (int i = 0; i < 9; i++) {
+
     std::cout << " __";
     if (BOARD[i] == 0) {
       std::cout << i;
@@ -264,6 +270,9 @@ void Client::showBoard(unsigned int bckgcolor, unsigned int fregcolor,
 
     if ((i + 1) % 3 == 0) {
       std::cout << "__" << std::endl;
+      if (i < 7) {
+        printf("\033[%dC", poscol); // 光标右移动
+      }
     } else {
       std::cout << "__ |";
     }
@@ -275,7 +284,7 @@ int Client::checkInput() {
   while (pos < 0 || pos > 8) {
     std::cin >> pos;
     if (BOARD[pos] != 0) {
-      std::cout << "唉，这个位置好像不能落子了呢，再选一位置吧" << std::endl;
+      std::cout << "唉，这个位置好像不能落子了呢，再选一个位置吧" << std::endl;
       pos = -1;
     }
   }

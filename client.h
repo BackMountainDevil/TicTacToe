@@ -6,10 +6,11 @@ class Client {
 public:
   Client(); // 创建套接字
   void showBoard(unsigned int bckgcolor = 47, unsigned int fregcolor = 30,
-                 unsigned int Acolor = 32,
-                 unsigned int Bcolor = 35); // 显示棋盘以及棋子
-  int checkInput();                         // 获取用户的合法输入
-  int checkWinner();                        // 检测赢家
+                 unsigned int Acolor = 32, unsigned int Bcolor = 35,
+                 float rowscale = 0.2,
+                 float colscale = 0.3); // 显示棋盘以及棋子
+  int checkInput();                     // 获取用户的合法输入
+  int checkWinner();                    // 检测赢家
   void ShowWinner(int winner, bool isfirst = true); // 输出赢家输家
   void clearScreen(); // 清空控制台所有内容
   int AIInput();      // AI 输入
@@ -22,10 +23,10 @@ public:
   void SetColor(unsigned int bckgcolor,
                 unsigned int fregcolor); // 初始化背景色和前景色。
   void ShowMenu(const char **menu, unsigned int size, unsigned int index,
-                unsigned int bckgcolor, unsigned int fregcolor,
-                unsigned int tilcolor, unsigned int indexcolor,
-                struct winsize windows, float rowscale,
-                float colscale); // 显示用户菜单。
+                unsigned int bckgcolor = 47, unsigned int fregcolor = 30,
+                unsigned int tilcolor = 32, unsigned int indexcolor = 34,
+                float rowscale = 0.2,
+                float colscale = 0.3); // 显示用户菜单。
   int GetMenuInput(unsigned int *index, unsigned int start,
                    unsigned int end); // 获取用户输入的 ASCII
 
