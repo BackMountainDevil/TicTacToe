@@ -215,32 +215,11 @@ bool Client::Start() {
                 }
                 count++;
               }
-              switch (winner) {
-              case 1:
-                if (isfirst) {
-                  std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
-                } else {
-                  std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
-                }
-                break;
-              case 2:
-                if (isfirst) {
-                  std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
-                } else {
-                  std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
-                }
-                break;
-              case 0:
-                std::cout << "这次不分伯仲呢" << std::endl;
-                break;
-              }
-              std::cout << "玩耍结束. 按 回车键 继续" << std::endl;
-              this->Reset();                // 重置棋盘
+              ShowWinner(winner, isfirst);
               std::sprintf(bufSend, "\\W"); // 告诉服务器我游戏结束了
               write(sock, bufSend, sizeof(bufSend));
               read(sock, bufRecv, sizeof(bufRecv));
-              getchar(); // 两个模拟暂停
-              getchar();
+
             } else {
               std::cout << "还没有匹配到和你一样机智的人类. 按 回车键 继续"
                         << std::endl;
@@ -393,22 +372,7 @@ void Client::PlayAI() {
     }
     count++;
   }
-
-  switch (winner) {
-  case 1:
-    std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
-    break;
-  case 2:
-    std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
-    break;
-  case 0:
-    std::cout << "这次不分伯仲呢" << std::endl;
-    break;
-  }
-  std::cout << "玩耍结束. 按 回车键 继续" << std::endl;
-  this->Reset(); // 不重置再重新开局的话就棋盘还在
-  getchar();     // 为了缓冲暂停一下，一个不够
-  getchar();
+  ShowWinner(winner);
 }
 
 void Client::Reset() {
@@ -418,6 +382,36 @@ void Client::Reset() {
 }
 
 void Client::Close() { close(this->sock); }
+
+/*  输出赢家输家。
+winner：赢家 0～2
+isfirst：是否先手，针对联机模式。离线模式默认 true
+ */
+void Client::ShowWinner(int winner, bool isfirst) {
+  this->Reset(); // 不重置再重新开局的话就棋盘还在
+  switch (winner) {
+  case 1:
+    if (isfirst) {
+      std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
+    } else {
+      std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
+    }
+    break;
+  case 2:
+    if (isfirst) {
+      std::cout << "对方险胜你一筹，还需要努力哟" << std::endl;
+    } else {
+      std::cout << "太棒了！你赢了这场智力比拼！" << std::endl;
+    }
+    break;
+  case 0:
+    std::cout << "这次不分伯仲呢" << std::endl;
+    break;
+  }
+  std::cout << "玩耍结束. 按 回车键 继续" << std::endl;
+  getchar(); // 两个模拟暂停
+  getchar();
+}
 
 int main() {
   Client cli;

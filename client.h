@@ -8,14 +8,15 @@ public:
   void showBoard();  // 显示棋盘以及棋子
   int checkInput();  // 获取用户的合法输入
   int checkWinner(); // 检测赢家
-  void clearScreen(); // 清空控制台所有内容, linux 与 windows 有所不同
+  void ShowWinner(int winner, bool isfirst = true); // 输出赢家输家
+  void clearScreen(); // 清空控制台所有内容
   int AIInput();      // AI 输入
   bool Connect();     // 连接服务器
   bool Start();       // 开始游戏
   void PlayAI();      // 人机对战
   void Reset();       // 重置棋盘
   void Close();       // 关闭套接字
-  void ResetColor(); /*  取消前面的 VT 控制码设置 */
+  void ResetColor();  //  取消前面的 VT 控制码设置
   void SetColor(unsigned int bckgcolor,
                 unsigned int fregcolor); // 初始化背景色和前景色。
   void ShowMenu(const char **menu, unsigned int size, unsigned int index,
