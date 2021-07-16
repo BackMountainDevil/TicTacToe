@@ -6,12 +6,6 @@ const char *offlinemenu[] = {"游戏菜单 - 离线模式", "1. 重新连接服�
 
 const char *onlinemenu[] = {"游戏菜单 - 联机模式", "1. 开始匹配", "2. AI 模式",
                             "3. 退出游戏"};
-// 可操作的按键
-enum {
-  UP = 119,   // W
-  DOWN = 115, // S
-  ENTER = 10, // Enter
-};
 /* 获取用户输入的 ASCII。
 index: 菜单项对应的变量的地址
 start：菜单项的最小值
@@ -278,9 +272,9 @@ void Client::showBoard() {
       std::cout << i;
     } else {
       if (BOARD[i] == 1) {
-        std::cout << 'x';
+        std::cout << CHESSA;
       } else {
-        std::cout << 'A';
+        std::cout << CHESSB;
       }
     }
 
@@ -297,7 +291,7 @@ int Client::checkInput() {
   while (pos < 0 || pos > 8) {
     std::cin >> pos;
     if (BOARD[pos] != 0) {
-      std::cout << "Position is not null, try again" << std::endl;
+      std::cout << "唉，这个位置好像不能落子了呢，再选一位置吧" << std::endl;
       pos = -1;
     }
   }
