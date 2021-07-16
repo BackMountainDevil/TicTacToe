@@ -3,6 +3,10 @@
 
 pthread_mutex_t mutex; // 互斥量
 char bufSend[BUF_SIZE];
+int serv_sock = -1;
+struct sockaddr_in serv_addr;
+struct sockaddr_in clnt_addr;
+socklen_t clnt_addr_size = sizeof(clnt_addr);
 
 struct Clients {
   unsigned int sum = 0;               // 客户数
@@ -10,6 +14,57 @@ struct Clients {
   char status[CLIENTMAX]; // 'G' 游戏中, 'W' 未匹配队友，'F' 不在线 ，‘S’ 匹配中
 } cli;
 
+/* 建立套接字，监听端口 */
+int Init() {
+  memset(&cli.status, 'F', CLIENTMAX); // 每个字节都用F填充
+
+  struct hostent *host = gethostbyname(DOMAIN); // 由域名获取 IP
+  if (!host) {
+    perror("Get IP address error!");
+    return -1;
+  }
+
+  serv_sock = socket(AF_INET, SOCK_STREAM, 0); // 创建套接字
+  if (serv_sock == -1) {
+    perror("Error: Socket creation failed");
+    close(serv_sock);
+    exit(EXIT_FAILURE);
+  }
+
+  int opt = 1;
+  if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
+                 sizeof(opt))) {
+    perror("Setsockopt: 设置 地址/端口 可复用失败");
+    close(serv_sock);
+    exit(EXIT_FAILURE);
+  }
+
+  memset(&serv_addr, 0, sizeof(serv_addr)); // 每个字节都用0填充
+  serv_addr.sin_family = AF_INET;           // 使用IPv4地址
+  serv_addr.sin_addr.s_addr =
+      inet_addr(inet_ntoa(*(struct in_addr *)host->h_addr_list[0])); // IP地址
+  serv_addr.sin_port = htons(PORT);                                  // 端口
+
+  if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
+    perror("Bind failed");
+    close(serv_sock);
+    exit(EXIT_FAILURE);
+  }
+
+  // 进入监听状态，等待用户发起请求
+  if (listen(serv_sock, CLIENTMAX) == -1) {
+    perror("Listen");
+    close(serv_sock);
+    exit(EXIT_FAILURE);
+  }
+  printf("Waiting for connecting\n");
+  return 0;
+}
+
+/* 发送消息给指定套接字的用户。
+msg：消息内容
+len：消息长度
+fd：客户套接字，默认 -1 表示发给全部客户 */
 void *send_msg(char *msg, int len, int fd = -1) {
   int num;
   if (fd != -1) {
@@ -32,7 +87,9 @@ void *send_msg(char *msg, int len, int fd = -1) {
   return NULL;
 }
 
-// 处理新客户连接
+/*  处理新客户发来的消息。如果是特殊指令就特别处理，其它的则原路回声
+最最最注意的是加锁和解锁配套，不然程序卡住了很可能是死锁
+arg：指向客户套接字的指针 */
 void *handle_client(void *arg) {
   int clnt_sock = *((int *)arg);
   int recv_num = 0;
@@ -148,55 +205,9 @@ void *handle_client(void *arg) {
 }
 
 int main() {
-  memset(&cli.status, 'F', CLIENTMAX); // 每个字节都用F填充
-
-  struct hostent *host = gethostbyname(DOMAIN); // 由域名获取 IP
-  if (!host) {
-    perror("Get IP address error!");
-    return -1;
-  }
-
-  int serv_sock = socket(AF_INET, SOCK_STREAM, 0); // 创建套接字
-  if (serv_sock == -1) {
-    perror("Error: Socket creation failed");
-    close(serv_sock);
-    exit(EXIT_FAILURE);
-  }
-
-  int opt = 1;
-  if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
-                 sizeof(opt))) {
-    perror("Setsockopt: 设置 地址/端口 可复用失败");
-    close(serv_sock);
-    exit(EXIT_FAILURE);
-  }
-
-  struct sockaddr_in serv_addr;
-  memset(&serv_addr, 0, sizeof(serv_addr)); // 每个字节都用0填充
-  serv_addr.sin_family = AF_INET;           // 使用IPv4地址
-  serv_addr.sin_addr.s_addr =
-      inet_addr(inet_ntoa(*(struct in_addr *)host->h_addr_list[0])); // IP地址
-  serv_addr.sin_port = htons(PORT);                                  // 端口
-
-  if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
-    perror("Bind failed");
-    close(serv_sock);
-    exit(EXIT_FAILURE);
-  }
-
-  // 进入监听状态，等待用户发起请求
-  if (listen(serv_sock, CLIENTMAX) == -1) {
-    perror("Listen");
-    close(serv_sock);
-    exit(EXIT_FAILURE);
-  }
-  printf("Waiting for connecting\n");
-
   pthread_mutex_init(&mutex, NULL); // 建立互斥量
   pthread_t t_id;
-
-  struct sockaddr_in clnt_addr;
-  socklen_t clnt_addr_size = sizeof(clnt_addr);
+  Init();
   while (true) {
     int clnt_sock =
         accept(serv_sock, (struct sockaddr *)&clnt_addr, &clnt_addr_size);
@@ -225,6 +236,7 @@ int main() {
     }
   }
 
+  pthread_mutex_destroy(&mutex); // 销毁互斥量
   close(serv_sock);
   puts("Server close");
   return 0;
